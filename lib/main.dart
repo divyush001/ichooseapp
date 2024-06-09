@@ -35,68 +35,96 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _selectedIndex1 = 0;
-  int _selectedIndex2 = 0;
-  List<ListTile> selectedImageList = List.empty();
-  int click = 0;
-  final Future<List<Image>> listImages =
-      splitImage('assets/images/filmdirector.png');
+  int firstSelectedIndex = -1;
+  int secondSelectedIndex = -1;
+  List<Image> listImages = List.empty();
+
+  @override
+  void initState() {
+    super.initState();
+    firstSelectedIndex = -1;
+    secondSelectedIndex = -1;
+
+    Future<void> getlistimages() async {
+      listImages = await splitImage('lib/assets/images/filmdirector.png');
+    }
+
+    getlistimages();
+  }
+
   @override
   Widget build(BuildContext context) {
     //print(listImages);
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Image'),
-      ),
-      body: Column(
-        //mainAxisSize: MainAxisSize.max,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          const SizedBox(
-            height: 16,
-          ),
-          Expanded(
-            child: FutureBuilder(
-              future: listImages,
-              builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
-                if (snapshot.hasData) {
-                  return GridView.extent(
-                      maxCrossAxisExtent: 150,
-                      padding: const EdgeInsets.all(1),
-                      mainAxisSpacing: 1,
-                      crossAxisSpacing: 1,
-                      children: if(){
+        appBar: AppBar(
+          title: Text('Image'),
+        ),
+        body: GridView.builder(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3),
+            itemCount: listImages.length,
+            itemBuilder: (context, index) {
+              return GestureDetector(
+                onTap: () => onPieceTapped(index, listImages),
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.black),
+                  ),
+                  child: listImages[index],
+                ),
+              );
+            })
 
-                      }_buildGridTileList(9, snapshot));
-                } else {
-                  return const Text('Loading Image');
-                }
-              },
-            ),
-          ),
-        ],
-      ),
-      // This trailing comma makes auto-formatting nicer for build methods.
-    );
+        // This trailing comma makes auto-formatting nicer for build methods.
+        );
+  }
+
+  void onPieceTapped(int index, List<Image> listimg) {
+    setState(() {
+      if (firstSelectedIndex == -1) {
+        firstSelectedIndex = index;
+      } else if (secondSelectedIndex == -1) {
+        secondSelectedIndex = index;
+        swapPieces(listimg);
+      }
+    });
+  }
+
+  void swapPieces(List<Image> listimg) {
+    setState(() {
+      if (firstSelectedIndex != -1 && secondSelectedIndex != -1) {
+        final temp = listimg[firstSelectedIndex];
+        listimg[firstSelectedIndex] = listimg[secondSelectedIndex];
+        listimg[secondSelectedIndex] = temp;
+
+        // Reset the selected indices
+        firstSelectedIndex = -1;
+        secondSelectedIndex = -1;
+      }
+    });
   }
 }
 
-List<ListTileCustom> _buildGridTileList(
-    int count, AsyncSnapshot<dynamic> snapshot) {
-  List<ListTileCustom> tileslist;
+// List<ListTileCustom> _buildGridTileList(
+//     int count, AsyncSnapshot<dynamic> snapshot) {
+//   List<ListTileCustom> tileslist;
 
-  tileslist = List.generate(
-      count,
-      (i) => ListTileCustom(
-            index: i,
-            snapshot: snapshot,
-          ));
+//   tileslist = List.generate(
+//       count,
+//       (i) => ListTileCustom(
+//             index: i,
+//             snapshot: snapshot,
+//           ));
 
-  return tileslist;
-}
+//   return tileslist;
+// }
 
 Future<List<Image>> splitImage(String path) async {
   imglib.Image? image = await decodeAsset(path);
+  //Image img = getImage(path);
+
+  // imglib.Image? image =
+  //     imglib.decodeImage((await rootBundle.load(path)).buffer.asUint8List());
 
   List<Image> pieces = [];
   int x = 0, y = 0;
@@ -119,6 +147,11 @@ Future<List<Image>> splitImage(String path) async {
 /* From documentation: 
    * https://github.com/brendan-duncan/image/blob/main/doc/flutter.md#convert-a-flutter-asset-to-the-dart-image-library
    */
+
+// Image getImage(String path) {
+//   return Image.asset(path);
+// }
+
 Future<imglib.Image?> decodeAsset(String path) async {
   final data = await rootBundle.load(path);
 
