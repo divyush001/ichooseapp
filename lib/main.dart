@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ichooseapp/screens/youwin.dart';
 import 'package:image/image.dart' as imglib;
 import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
@@ -37,19 +38,22 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   int firstSelectedIndex = -1;
   int secondSelectedIndex = -1;
-  List<Image> listImages = List.empty();
-
+  late Future<List<Image>> listImages;
+  List<Image> finalList = List.unmodifiable([]);
+  //Future<void> getlistimages() async {}
   @override
   void initState() {
     super.initState();
     firstSelectedIndex = -1;
     secondSelectedIndex = -1;
 
-    Future<void> getlistimages() async {
-      listImages = await splitImage('lib/assets/images/filmdirector.png');
-    }
+    listImages = splitImage('lib/assets/images/filmdirector.png');
 
     getlistimages();
+  }
+
+  Future<void> getlistimages() async {
+    finalList = await listImages;
   }
 
   @override
@@ -57,51 +61,90 @@ class _MyHomePageState extends State<MyHomePage> {
     //print(listImages);
     return Scaffold(
         appBar: AppBar(
-          title: Text('Image'),
+          title: const Text('Image Swap'),
         ),
-        body: GridView.builder(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3),
-            itemCount: listImages.length,
-            itemBuilder: (context, index) {
-              return GestureDetector(
-                onTap: () => onPieceTapped(index, listImages),
-                child: Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.black),
-                  ),
-                  child: listImages[index],
-                ),
-              );
+        body: FutureBuilder(
+            // gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            //     crossAxisCount: 3),
+            // itemCount: listImages.length,
+            future: listImages,
+            //splitImage('lib/assets/images/filmdirector.png'),
+            builder: (context, snapshot) {
+              if (snapshot.hasData) {
+                //List<Image> listimgs = snapshot.data!;
+                return GridView.builder(
+                    itemCount: snapshot.data!.length,
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3),
+                    itemBuilder: (context, index) {
+                      return GestureDetector(
+                        onTap: () async {
+                          if (onPieceTapped(index, await listImages) == true) {
+                            Navigator.of(context).push(MaterialPageRoute(
+                                builder: (context) => WinScreen()));
+                          }
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.black),
+                          ),
+                          child: snapshot.data!.elementAt(index),
+                        ),
+                      );
+                    });
+              } else {
+                return const CircularProgressIndicator();
+              }
             })
 
         // This trailing comma makes auto-formatting nicer for build methods.
         );
   }
 
-  void onPieceTapped(int index, List<Image> listimg) {
+  bool onPieceTapped(int index, List<Image> listimg) {
+    bool checking = false;
     setState(() {
       if (firstSelectedIndex == -1) {
         firstSelectedIndex = index;
       } else if (secondSelectedIndex == -1) {
         secondSelectedIndex = index;
-        swapPieces(listimg);
+        checking = swapPieces(listimg);
       }
     });
+    return checking;
   }
 
-  void swapPieces(List<Image> listimg) {
+  bool swapPieces(List<Image> listimg) {
+    bool checkifsame = false;
     setState(() {
       if (firstSelectedIndex != -1 && secondSelectedIndex != -1) {
         final temp = listimg[firstSelectedIndex];
         listimg[firstSelectedIndex] = listimg[secondSelectedIndex];
         listimg[secondSelectedIndex] = temp;
-
-        // Reset the selected indices
-        firstSelectedIndex = -1;
-        secondSelectedIndex = -1;
+        final bool check = checkifimageslistsame(listimg);
+        if (check == true) {
+          checkifsame = true;
+        } else {
+// Reset the selected indices
+          firstSelectedIndex = -1;
+          secondSelectedIndex = -1;
+        }
       }
     });
+    return checkifsame;
+  }
+
+  checkifimageslistsame(List<Image> listimg) {
+    bool imageiteratorcheck = false;
+    for (int k = 0; k < listimg.length; k++) {
+      if (finalList[k] == listimg[k]) {
+        imageiteratorcheck = true;
+      } else {
+        return false;
+      }
+    }
+    return imageiteratorcheck;
   }
 }
 
