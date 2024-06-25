@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:ichooseapp/screens/youwin.dart';
+import 'package:ichooseapp/widgets/CustomPiece.dart';
 import 'package:image/image.dart' as imglib;
 import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
-
-import 'widgets/ListTileCustom.dart';
 
 void main() {
   runApp(const MyApp());
@@ -38,8 +37,8 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   int firstSelectedIndex = -1;
   int secondSelectedIndex = -1;
-  late Future<List<Image>> listImages;
-  List<Image> finalList = List.unmodifiable([]);
+  late Future<List<CustomPiece>> listImages;
+  List<CustomPiece> finalList = List.unmodifiable([]);
   //Future<void> getlistimages() async {}
   @override
   void initState() {
@@ -80,16 +79,13 @@ class _MyHomePageState extends State<MyHomePage> {
                     itemBuilder: (context, index) {
                       return GestureDetector(
                         onTap: () async {
-                          if (onPieceTapped(index, await listImages) == true) {
-                            Navigator.of(context).push(MaterialPageRoute(
-                                builder: (context) => WinScreen()));
-                          }
+                          onPieceTapped(index, await listImages);
                         },
                         child: Container(
                           decoration: BoxDecoration(
                             border: Border.all(color: Colors.black),
                           ),
-                          child: snapshot.data!.elementAt(index),
+                          child: snapshot.data!.elementAt(index).image,
                         ),
                       );
                     });
@@ -102,20 +98,21 @@ class _MyHomePageState extends State<MyHomePage> {
         );
   }
 
-  bool onPieceTapped(int index, List<Image> listimg) {
+  void onPieceTapped(int index, List<CustomPiece> listimg) {
     bool checking = false;
     setState(() {
       if (firstSelectedIndex == -1) {
         firstSelectedIndex = index;
       } else if (secondSelectedIndex == -1) {
         secondSelectedIndex = index;
-        checking = swapPieces(listimg);
+        swapPieces(listimg);
+        //checking = swapPieces(listimg);
       }
     });
-    return checking;
+    //return checking;
   }
 
-  bool swapPieces(List<Image> listimg) {
+  void swapPieces(List<CustomPiece> listimg) {
     bool checkifsame = false;
     setState(() {
       if (firstSelectedIndex != -1 && secondSelectedIndex != -1) {
@@ -125,6 +122,8 @@ class _MyHomePageState extends State<MyHomePage> {
         final bool check = checkifimageslistsame(listimg);
         if (check == true) {
           checkifsame = true;
+          Navigator.of(context)
+              .push(MaterialPageRoute(builder: (context) => WinScreen()));
         } else {
 // Reset the selected indices
           firstSelectedIndex = -1;
@@ -132,13 +131,13 @@ class _MyHomePageState extends State<MyHomePage> {
         }
       }
     });
-    return checkifsame;
+    //return checkifsame;
   }
 
-  checkifimageslistsame(List<Image> listimg) {
+  checkifimageslistsame(List<CustomPiece> listimg) {
     bool imageiteratorcheck = false;
-    for (int k = 0; k < listimg.length; k++) {
-      if (finalList[k] == listimg[k]) {
+    for (int k = 0; k < (listimg.length - 1); k++) {
+      if ((listimg[k].index)! < (listimg[k + 1].index)!) {
         imageiteratorcheck = true;
       } else {
         return false;
@@ -162,28 +161,35 @@ class _MyHomePageState extends State<MyHomePage> {
 //   return tileslist;
 // }
 
-Future<List<Image>> splitImage(String path) async {
+Future<List<CustomPiece>> splitImage(String path) async {
   imglib.Image? image = await decodeAsset(path);
   //Image img = getImage(path);
 
   // imglib.Image? image =
   //     imglib.decodeImage((await rootBundle.load(path)).buffer.asUint8List());
 
-  List<Image> pieces = [];
-  int x = 0, y = 0;
+  List<CustomPiece> pieces = [];
+
+  Image img;
+  int x = 0, y = 0, index = 0;
   int width = (image!.width / 3).floor();
   int height = (image.height / 3).floor();
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
       imglib.Image croppedImage =
           imglib.copyCrop(image, x: x, y: y, width: width, height: height);
-      pieces.add(Image.memory(imglib.encodeJpg(croppedImage)));
+      img = Image.memory(imglib.encodeJpg(croppedImage));
+
+      CustomPiece custPiece = CustomPiece(index: index, image: img);
+      //print("piece no: " + pieces[index].index.toString());
+      pieces.add(custPiece);
+      index += 1;
       x += width;
     }
     x = 0;
     y += height;
   }
-
+  index = 0;
   return pieces;
 }
 
